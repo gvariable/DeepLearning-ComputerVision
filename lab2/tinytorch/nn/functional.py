@@ -9,11 +9,10 @@ def unbrocast(arr, shape):
     else:
         sum_axis = tuple(i for i in range(len(shape)) if shape[i] == 1 and arr.shape[i] > 1) if arr.shape != (
             1,) else None
-    return np.sum(arr, axis=sum_axis) if sum_axis else arr
+    return np.sum(arr, axis=sum_axis, keepdims=True) if sum_axis else arr
 
 
 class Add(Function):
-    # TODO(gpl): add support for int/float etc.
     @staticmethod
     def forward(ctx: ContextManager, x0, x1):
         ctx.save_for_backward(x0.shape, x1.shape)
@@ -75,6 +74,74 @@ class Neg(Function):
     @staticmethod
     def backward(ctx: ContextManager, grad_output):
         return np.negative(grad_output)
+
+
+class Sqrt(Function):
+
+    @staticmethod
+    def forward(ctx: ContextManager, x):
+        ctx.save_for_backward(x)
+        return np.sqrt(x)
+
+    @staticmethod
+    def backward(ctx: ContextManager, grad_output):
+        x = ctx.saved_tensors[0]
+        return np.divide(np.multiply(0.5, grad_output), np.sqrt(x))
+
+
+class Tanh(Function):
+
+    @staticmethod
+    def forward(ctx: ContextManager, x):
+        ctx.save_for_backward(x)
+        return np.tanh(x)
+
+    @staticmethod
+    def backward(ctx: ContextManager, grad_output):
+        x = ctx.saved_tensors[0]
+        return np.multiply(np.subtract(1, np.square(np.tanh(x))), grad_output)
+
+
+class Sigmoid(Function):
+
+    @staticmethod
+    def forward(ctx: ContextManager, x):
+        ctx.save_for_backward(x)
+        return np.divide(1, (np.add(1, np.exp(np.negative(x)))))
+
+    @staticmethod
+    def backward(ctx: ContextManager, grad_output):
+        def _sigmoid(x):
+            return np.divide(1, (np.add(1, np.exp(np.negative(x)))))
+
+        x = ctx.saved_tensors[0]
+        return np.multiply(np.multiply(_sigmoid(x), np.subtract(1, _sigmoid(x))), grad_output)
+
+
+class Relu(Function):
+
+    @staticmethod
+    def forward(ctx: ContextManager, x):
+        ctx.save_for_backward(x)
+        return np.maximum(0, x)
+
+    @staticmethod
+    def backward(ctx: ContextManager, grad_output):
+        x = ctx.saved_tensors[0]
+        return np.multiply(np.greater(x, 0), grad_output)
+
+
+class Softmax(Function):
+
+    @staticmethod
+    def forward(ctx: ContextManager, x):
+        ctx.save_for_backward(x)
+        return np.exp(x) / np.sum(np.exp(x), axis=1, keepdims=True)
+
+    @staticmethod
+    def backward(ctx: ContextManager, grad_output):
+        x = ctx.saved_tensors[0]
+        return np.multiply(grad_output, np.subtract(np.exp(x), np.sum(np.exp(x), axis=1, keepdims=True)))
 
 
 class Pow(Function):

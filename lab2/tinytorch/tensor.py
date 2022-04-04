@@ -73,6 +73,21 @@ class Tensor(object):
     def asarray(self):
         return self.data
 
+    def __bool__(self):
+        return bool(self.data.any())
+
+    def __eq__(self, other):
+        if isinstance(other, Tensor):
+            return self.data == other.data
+        else:
+            return self.data == other
+
+    def __lt__(self, other):
+        if isinstance(other, Tensor):
+            return self.data <= other.data
+        else:
+            return self.data <= other
+
 
 # """*********************Create Ops*********************"""
 def zeros(*shape, dtype=None, requires_grad=False):
@@ -112,7 +127,7 @@ def eye(dim, dtype=None, requires_grad=False):
 
 
 def empty(*shape, dtype=None, requires_grad=False):
-    return Tensor(np.empty(shape, dtype=dtype), requires_grad)
+    return Tensor(np.empty(*shape, dtype=dtype), requires_grad)
 
 
 def empty_like(tensor, dtype=None, requires_grad=False):
@@ -120,11 +135,11 @@ def empty_like(tensor, dtype=None, requires_grad=False):
 
 
 def empty_strided(*shape, dtype=None, requires_grad=False):
-    return Tensor(np.empty_strided(shape, dtype=dtype), requires_grad)
+    return Tensor(np.empty_strided(*shape, dtype=dtype), requires_grad)
 
 
 def full(*shape, fill_value, dtype=None, requires_grad=False):
-    return Tensor(np.full(shape, fill_value, dtype=dtype), requires_grad)
+    return Tensor(np.full(*shape, fill_value, dtype=dtype), requires_grad)
 
 
 def full_like(tensor, fill_value, dtype=None, requires_grad=False):
@@ -153,7 +168,7 @@ def normal(mean=0, std=1, requires_grad=False):
 
 
 def randn(*shape, dtype=None, requires_grad=False):
-    return Tensor(np.random.randn(shape).astype(dtype), requires_grad)
+    return Tensor(np.random.randn(*shape).astype(dtype), requires_grad)
 
 
 def randn_like(tensor, dtype=None, requires_grad=False):
@@ -172,12 +187,15 @@ def uniform(low=0.0, high=1.0, size=None, dtype=None, requires_grad=False):
     return Tensor(np.random.uniform(low, high, size).astype(dtype), requires_grad)
 
 
+def allclose(a, b, rtol=1e-05, atol=1e-03, equal_nan=False):
+    return np.allclose(a, b, rtol=rtol, atol=atol, equal_nan=equal_nan)
+
+
 # """*********************Operation*********************"""
 def tensor_wrapper(func, *args, **kwargs):
-    _args = [arg if isinstance(arg, Tensor) else Tensor(arg) for arg in args]
-    import ipdb
-    ipdb.set_trace()
-    func.apply(*_args, **kwargs)
+    _args = [arg if isinstance(arg, Tensor) else Tensor(arg)
+             for arg in args]
+    return func.apply(*_args, **kwargs)
 
 
 Tensor.__neg__ = lambda self: tensor_wrapper(F.Neg, self)
@@ -193,11 +211,27 @@ Tensor.__pow__ = lambda self, other: tensor_wrapper(F.Pow, self, other)
 Tensor.__rpow__ = lambda self, other: tensor_wrapper(F.Pow, other, self)
 
 Tensor.log = lambda self: tensor_wrapper(F.Log, self)
+log = Tensor.log
 Tensor.exp = lambda self: tensor_wrapper(F.Exp, self)
+exp = Tensor.exp
 Tensor.abs = lambda self: tensor_wrapper(F.Abs, self)
+abs = Tensor.abs
 Tensor.mm = lambda self, other: tensor_wrapper(F.Matmul, self, other)
+mm = Tensor.mm
 Tensor.dot = Tensor.mm
+dot = Tensor.dot
 Tensor.sum = lambda self, dim=None: tensor_wrapper(F.Sum, self, dim)
+sum = Tensor.sum
+Tensor.sqrt = lambda self: tensor_wrapper(F.Sqrt, self)
+sqrt = Tensor.sqrt
+Tensor.tanh = lambda self: tensor_wrapper(F.Tanh, self)
+tanh = Tensor.tanh
+Tensor.sigmoid = lambda self: tensor_wrapper(F.Sigmoid, self)
+sigmoid = Tensor.sigmoid
+Tensor.relu = lambda self: tensor_wrapper(F.Relu, self)
+relu = Tensor.relu
+Tensor.softmax = lambda self, dim=None: tensor_wrapper(F.Softmax, self, dim)
+softmax = Tensor.softmax
 
 Tensor.__int__ = lambda self: int(self.data) if np.prod(self.shape) == 1 else None
 Tensor.__float__ = lambda self: int(self.data) if np.prod(self.shape) == 1 else None
