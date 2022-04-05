@@ -67,6 +67,10 @@ class Tensor(object):
     def dtype(self):
         return self.data.dtype
 
+    @property
+    def T(self):
+        return Tensor(self.data.T)
+
     def size(self):
         return self.shape
 
@@ -84,9 +88,27 @@ class Tensor(object):
 
     def __lt__(self, other):
         if isinstance(other, Tensor):
+            return self.data < other.data
+        else:
+            return self.data < other
+
+    def __gt__(self, other):
+        if isinstance(other, Tensor):
+            return self.data > other.data
+        else:
+            return self.data > other
+
+    def __le__(self, other):
+        if isinstance(other, Tensor):
             return self.data <= other.data
         else:
             return self.data <= other
+
+    def __ge__(self, other):
+        if isinstance(other, Tensor):
+            return self.data >= other.data
+        else:
+            return self.data >= other
 
 
 # """*********************Create Ops*********************"""
