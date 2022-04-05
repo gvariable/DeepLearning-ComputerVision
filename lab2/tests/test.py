@@ -37,7 +37,8 @@ class MyTestCase(unittest.TestCase):
             self.assertTrue(self.compare(numerical_grads, backward_grads, a, b))
 
     def test_SingleOps(self):
-        operations = [F.Neg, F.Sqrt, F.Exp, F.Log, F.Tanh, F.Sigmoid, F.Relu, F.Softmax, F.Abs]
+        operations = [F.Neg, F.Sqrt, F.Exp, F.Log, F.Tanh, F.Sigmoid, F.Relu, F.LeakyRelu, F.Elu, F.Hardswish,
+                      F.Softmax, F.Abs]
         ctx = autograd.ContextManager()
         grad_upstream = tinytorch.ones(2, 2)
 

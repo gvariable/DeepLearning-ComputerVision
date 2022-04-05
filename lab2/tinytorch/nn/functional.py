@@ -143,6 +143,45 @@ class Relu(Function):
         return np.multiply(np.greater(x, 0), grad_output)
 
 
+class LeakyRelu(Function):
+
+    @staticmethod
+    def forward(ctx: ContextManager, x):
+        ctx.save_for_backward(x)
+        return np.maximum(0.01 * x, x)
+
+    @staticmethod
+    def backward(ctx: ContextManager, grad_output):
+        x = ctx.saved_tensors[0]
+        return np.multiply(np.greater(x, 0), grad_output) + np.multiply(np.less(x, 0), 0.01 * grad_output)
+
+
+class Elu(Function):
+
+    @staticmethod
+    def forward(ctx: ContextManager, x):
+        ctx.save_for_backward(x)
+        return np.where(x > 0, x, np.exp(x) - 1)
+
+    @staticmethod
+    def backward(ctx: ContextManager, grad_output):
+        x = ctx.saved_tensors[0]
+        return np.where(x > 0, grad_output, np.multiply(np.exp(x), grad_output))
+
+
+class Hardswish(Function):
+
+    @staticmethod
+    def forward(ctx: ContextManager, x):
+        ctx.save_for_backward(x)
+        return np.where(x <= -3, 0, np.where(x >= 3, x, np.divide(np.multiply(x, np.add(x, 3)), 6)))
+
+    @staticmethod
+    def backward(ctx: ContextManager, grad_output):
+        x = ctx.saved_tensors[0]
+        return np.where(x <= -3, 0, np.where(x >= 3, 1, np.divide(np.add(np.multiply(2, x), 3), 6)))
+
+
 class Softmax(Function):
 
     @staticmethod
