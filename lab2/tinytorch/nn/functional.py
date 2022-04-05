@@ -7,9 +7,21 @@ def unbrocast(arr, shape):
     if len(shape) == 1:
         sum_axis = tuple(range(0, len(arr.shape) - 1))
     else:
-        sum_axis = tuple(i for i in range(len(shape)) if shape[i] == 1 and arr.shape[i] > 1) if arr.shape != (
-            1,) else None
+        if arr.shape != (1,):
+            sum_axis = []
+            for i in range(-1, -len(shape) - 1, -1):
+                if shape[i] == 1 and arr.shape[i] > 1:
+                    sum_axis.append(len(arr.shape) + i)
+            sum_axis.extend(list(range(len(arr.shape) - len(shape))))
+            sum_axis = tuple(sum_axis)
+        else:
+            sum_axis = None
     return np.sum(arr, axis=sum_axis, keepdims=True) if sum_axis else arr
+
+
+def transpose(tensor):
+    axes = tuple(range(len(tensor.shape) - 2)) + (len(tensor.shape) - 1, len(tensor.shape) - 2)
+    return np.transpose(tensor, axes)
 
 
 class Add(Function):
@@ -217,7 +229,7 @@ class Matmul(Function):
     @staticmethod
     def backward(ctx: ContextManager, grad_output):
         x0, x1 = ctx.saved_tensors
-        return np.matmul(grad_output, x1.T), np.matmul(x0.T, grad_output)
+        return np.matmul(grad_output, np.transpose(x1)), np.matmul(np.transpose(x0), grad_output)
 
 
 class Sum(Function):
@@ -234,3 +246,37 @@ class Sum(Function):
     def backward(ctx: ContextManager, grad_output):
         shape = ctx.saved_tensors[0]
         return (np.broadcast_to(grad_output, shape),)
+
+
+class Linear(Function):
+
+    @staticmethod
+    def forward(ctx: ContextManager, x, w, b=None):
+        """
+        Args:
+            ctx: ContextManager
+            x: (*, in_features)
+            w: (out_features, in_features) or (in_features)
+            b: (out_features) or None
+
+        Returns:
+
+        """
+        if len(w.shape) == 1:
+            shp = [1] * (len(x.shape) - 1) + [-1]
+            w = np.reshape(w, shp)
+        ctx.save_for_backward(x, w, b)
+        if b:
+            return np.add(np.matmul(x, transpose(w)), b)
+        return np.matmul(x, transpose(w))
+
+    @staticmethod
+    def backward(ctx: ContextManager, grad_output):
+        x, w, b = ctx.saved_tensors
+        if b:
+            return (unbrocast(np.matmul(grad_output, w), x.shape),
+                    unbrocast(transpose(np.matmul(transpose(x), grad_output)), w.shape),
+                    unbrocast(grad_output, b.shape))
+
+        return (unbrocast(np.matmul(grad_output, w), x.shape),
+                unbrocast(transpose(np.matmul(transpose(x), grad_output)), w.shape))

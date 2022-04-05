@@ -37,16 +37,31 @@ class MyTestCase(unittest.TestCase):
             self.assertTrue(self.compare(numerical_grads, backward_grads, a, b))
 
     def test_SingleOps(self):
-        operations = [F.Neg, F.Sqrt, F.Exp, F.Log, F.Tanh, F.Sigmoid, F.Relu, F.Softmax]
+        operations = [F.Neg, F.Sqrt, F.Exp, F.Log, F.Tanh, F.Sigmoid, F.Relu, F.Softmax, F.Abs]
+        ctx = autograd.ContextManager()
+        grad_upstream = tinytorch.ones(2, 2)
+
         for operation in operations:
             a = tinytorch.randn(2, 2)
-            grad_upstream = tinytorch.ones(2, 2)
-            ctx = autograd.ContextManager()
-
             operation.forward(ctx, a)
             backward_grads = operation.backward(ctx, grad_upstream)
             numerical_grads = autograd.gradient_check(operation, a, df=grad_upstream.asarray())
             self.assertTrue(self.compare(numerical_grads, backward_grads, [a]))
 
-    if __name__ == '__main__':
-        unittest.main()
+    def test_Linear(self):
+        op = F.Linear
+        x = tinytorch.ones(1, 2, 3)
+        w = tinytorch.ones(4, 3)
+        b = tinytorch.ones(4)
+
+        ctx = autograd.ContextManager()
+        grad_upstream = tinytorch.ones(5, 2, 4)
+
+        op.forward(ctx, x, w, b)
+        backward_grads = op.backward(ctx, grad_upstream)
+        numerical_grads = autograd.gradient_check(op, x, w, b, df=grad_upstream.asarray())
+        self.assertTrue(self.compare(numerical_grads, backward_grads, x, w, b))
+
+
+if __name__ == '__main__':
+    unittest.main()
