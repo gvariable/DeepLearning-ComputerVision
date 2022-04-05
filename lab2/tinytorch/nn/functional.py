@@ -1,6 +1,7 @@
 import numpy as np
 
 from ..autograd_engine import Function, ContextManager
+from ..tensor import Tensor
 
 
 def unbrocast(arr, shape):
@@ -319,3 +320,49 @@ class Linear(Function):
 
         return (unbrocast(np.matmul(grad_output, w), x.shape),
                 unbrocast(transpose(np.matmul(transpose(x), grad_output)), w.shape))
+
+
+# """*********************Operation*********************"""
+def tensor_wrapper(func, *args, **kwargs):
+    _args = [arg if isinstance(arg, Tensor) else Tensor(arg)
+             for arg in args]
+    return func.apply(*_args, **kwargs)
+
+
+Tensor.__neg__ = lambda self: tensor_wrapper(Neg, self)
+Tensor.__add__ = lambda self, other: tensor_wrapper(Add, self, other)
+Tensor.__radd__ = Tensor.__add__
+Tensor.__sub__ = lambda self, other: tensor_wrapper(Sub, self, other)
+Tensor.__rsub__ = lambda self, other: tensor_wrapper(Sub, other, self)
+Tensor.__mul__ = lambda self, other: tensor_wrapper(Mul, other, self)
+Tensor.__rmul__ = Tensor.__mul__
+Tensor.__truediv__ = lambda self, other: tensor_wrapper(Div, self, other)
+Tensor.__rtruediv__ = lambda self, other: tensor_wrapper(Div, other, self)
+Tensor.__pow__ = lambda self, other: tensor_wrapper(Pow, self, other)
+Tensor.__rpow__ = lambda self, other: tensor_wrapper(Pow, other, self)
+
+Tensor.log = lambda self: tensor_wrapper(Log, self)
+log = Tensor.log
+Tensor.exp = lambda self: tensor_wrapper(Exp, self)
+exp = Tensor.exp
+Tensor.abs = lambda self: tensor_wrapper(Abs, self)
+abs = Tensor.abs
+Tensor.mm = lambda self, other: tensor_wrapper(Matmul, self, other)
+mm = Tensor.mm
+Tensor.dot = Tensor.mm
+dot = Tensor.dot
+Tensor.sum = lambda self, dim=None: tensor_wrapper(Sum, self, dim)
+sum = Tensor.sum
+Tensor.sqrt = lambda self: tensor_wrapper(Sqrt, self)
+sqrt = Tensor.sqrt
+Tensor.tanh = lambda self: tensor_wrapper(Tanh, self)
+tanh = Tensor.tanh
+Tensor.sigmoid = lambda self: tensor_wrapper(Sigmoid, self)
+sigmoid = Tensor.sigmoid
+Tensor.relu = lambda self: tensor_wrapper(Relu, self)
+relu = Tensor.relu
+Tensor.softmax = lambda self, dim=None: tensor_wrapper(Softmax, self, dim)
+softmax = Tensor.softmax
+
+Tensor.__int__ = lambda self: int(self.data) if np.prod(self.shape) == 1 else None
+Tensor.__float__ = lambda self: int(self.data) if np.prod(self.shape) == 1 else None

@@ -34,7 +34,8 @@ class Function(object):
                     setattr(tensor, "grad_fn", AccumulatedGrad(tensor))
 
         output = cls.forward(ctx, *args, **kwargs)
-
+        import ipdb;
+        ipdb.set_trace()
         if any(requires_grads):
             output.requires_grad = True
             output.is_leaf = False

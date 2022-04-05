@@ -1,7 +1,6 @@
 import numpy as np
 
 from .autograd_engine import backward
-from .nn import functional as F
 
 
 class Tensor(object):
@@ -71,7 +70,9 @@ class Tensor(object):
     def T(self):
         return Tensor(self.data.T)
 
-    def size(self):
+    def size(self, dim=None):
+        if dim:
+            return self.shape[dim]
         return self.shape
 
     def asarray(self):
@@ -109,6 +110,9 @@ class Tensor(object):
             return self.data >= other.data
         else:
             return self.data >= other
+
+    def uniform_(self, low=0.0, high=1.0):
+        self.data = np.random.uniform(low, high, self.data.shape)
 
 
 # """*********************Create Ops*********************"""
@@ -149,7 +153,7 @@ def eye(dim, dtype=None, requires_grad=False):
 
 
 def empty(*shape, dtype=None, requires_grad=False):
-    return Tensor(np.empty(*shape, dtype=dtype), requires_grad)
+    return Tensor(np.empty(shape, dtype=dtype), requires_grad)
 
 
 def empty_like(tensor, dtype=None, requires_grad=False):
@@ -211,49 +215,3 @@ def uniform(low=0.0, high=1.0, size=None, dtype=None, requires_grad=False):
 
 def allclose(a, b, rtol=1e-05, atol=1e-03, equal_nan=False):
     return np.allclose(a, b, rtol=rtol, atol=atol, equal_nan=equal_nan)
-
-
-# """*********************Operation*********************"""
-def tensor_wrapper(func, *args, **kwargs):
-    _args = [arg if isinstance(arg, Tensor) else Tensor(arg)
-             for arg in args]
-    return func.apply(*_args, **kwargs)
-
-
-Tensor.__neg__ = lambda self: tensor_wrapper(F.Neg, self)
-Tensor.__add__ = lambda self, other: tensor_wrapper(F.Add, self, other)
-Tensor.__radd__ = Tensor.__add__
-Tensor.__sub__ = lambda self, other: tensor_wrapper(F.Sub, self, other)
-Tensor.__rsub__ = lambda self, other: tensor_wrapper(F.Sub, other, self)
-Tensor.__mul__ = lambda self, other: tensor_wrapper(F.Mul, other, self)
-Tensor.__rmul__ = Tensor.__mul__
-Tensor.__truediv__ = lambda self, other: tensor_wrapper(F.Div, self, other)
-Tensor.__rtruediv__ = lambda self, other: tensor_wrapper(F.Div, other, self)
-Tensor.__pow__ = lambda self, other: tensor_wrapper(F.Pow, self, other)
-Tensor.__rpow__ = lambda self, other: tensor_wrapper(F.Pow, other, self)
-
-Tensor.log = lambda self: tensor_wrapper(F.Log, self)
-log = Tensor.log
-Tensor.exp = lambda self: tensor_wrapper(F.Exp, self)
-exp = Tensor.exp
-Tensor.abs = lambda self: tensor_wrapper(F.Abs, self)
-abs = Tensor.abs
-Tensor.mm = lambda self, other: tensor_wrapper(F.Matmul, self, other)
-mm = Tensor.mm
-Tensor.dot = Tensor.mm
-dot = Tensor.dot
-Tensor.sum = lambda self, dim=None: tensor_wrapper(F.Sum, self, dim)
-sum = Tensor.sum
-Tensor.sqrt = lambda self: tensor_wrapper(F.Sqrt, self)
-sqrt = Tensor.sqrt
-Tensor.tanh = lambda self: tensor_wrapper(F.Tanh, self)
-tanh = Tensor.tanh
-Tensor.sigmoid = lambda self: tensor_wrapper(F.Sigmoid, self)
-sigmoid = Tensor.sigmoid
-Tensor.relu = lambda self: tensor_wrapper(F.Relu, self)
-relu = Tensor.relu
-Tensor.softmax = lambda self, dim=None: tensor_wrapper(F.Softmax, self, dim)
-softmax = Tensor.softmax
-
-Tensor.__int__ = lambda self: int(self.data) if np.prod(self.shape) == 1 else None
-Tensor.__float__ = lambda self: int(self.data) if np.prod(self.shape) == 1 else None
